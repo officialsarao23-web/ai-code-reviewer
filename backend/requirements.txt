@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+python-dotenv
+supabase
+langchain-groq
+langgraph
+langchain
+langsmith
+passlib[bcrypt]
+python-jose[cryptography]
+httpx
+slowapi
