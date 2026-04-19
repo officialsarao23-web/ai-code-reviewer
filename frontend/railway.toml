@@ -1,5 +1,5 @@
 [build]
-buildCommand = "npm install && npm run build"
+buildCommand = "npm run build"
 startCommand = "npx serve -s dist --listen ${PORT}"
 
 [deploy]
