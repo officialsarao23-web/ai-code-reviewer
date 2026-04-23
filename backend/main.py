@@ -42,8 +42,8 @@ def register(body: RegisterRequest):
     hashed = hash_password(body.password)
     result = supabase.table("users").insert({
         "email": body.email,
-          "password": hashed
-          }).execute()
+        "hashed_password": hashed
+    }).execute()
     user = result.data[0]
     token = create_token(user["id"])
     return{"access_token": token, "token_type": "bearer", "user_id": user["id"]}
@@ -53,7 +53,7 @@ def login(body: LoginRequest):
     if not result.data:
         raise HTTPException(status_code=400, detail="Invalid email or password")
     user = result.data[0]
-    if not verify_password(body.password, user['password']):
+    if not verify_password(body.password, user['hashed_password']):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_token(user["id"])
     return {"access_token": token, "token_type": "bearer", "user_id": user["id"]}
