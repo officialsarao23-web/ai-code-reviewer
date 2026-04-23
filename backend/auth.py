@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from pydantic import BaseModel
 import os
 
@@ -11,7 +11,6 @@ ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", 1440))
 
 
-pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
@@ -19,10 +18,10 @@ class TokenData(BaseModel):
     user_id :str
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 def verify_password(plain_password: str, hashed: str) -> bool:
-    return pwd_context.verify(plain_password, hashed)
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed.encode('utf-8'))
 
 def create_token(user_id: str) -> str:
     expire = datetime.utcnow()+ timedelta(minutes=EXPIRE_MINUTES)

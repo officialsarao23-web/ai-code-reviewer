@@ -6,7 +6,7 @@ langchain-groq
 langgraph
 langchain
 langsmith
-passlib[bcrypt]
+bcrypt
 python-jose[cryptography]
 httpx
 slowapi
