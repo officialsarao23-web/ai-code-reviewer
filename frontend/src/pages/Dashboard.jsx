@@ -105,7 +105,7 @@ export default function Dashboard() {
         {loading && (
           <div className="flex items-center gap-3 text-gray-400 py-8">
             <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            <span>Fetching PR data from GitHub...</span>
+            <span>Fetching PR data and running AI analysis... this may take 20-30 seconds</span>
           </div>
         )}
 
@@ -113,74 +113,124 @@ export default function Dashboard() {
         {report && (
           <div className="space-y-6">
 
-            {/* PR Metadata */}
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-lg font-semibold mb-4 text-blue-400">Pull Request</h2>
-              <h3 className="text-xl font-bold mb-3">{report.metadata.title}</h3>
-              {report.metadata.description && (
-                <p className="text-gray-400 text-sm mb-4">{report.metadata.description}</p>
-              )}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-500">Author</span>
-                  <p className="text-white font-medium">@{report.metadata.author}</p>
-                </div>
-                <div>
-                  <span className="text-gray-500">State</span>
-                  <p className="text-white font-medium capitalize">{report.metadata.state}</p>
-                </div>
-                <div>
-                  <span className="text-gray-500">Base Branch</span>
-                  <p className="text-white font-mono text-xs bg-gray-800 px-2 py-1 rounded w-fit">{report.metadata.base_branch}</p>
-                </div>
-                <div>
-                  <span className="text-gray-500">Head Branch</span>
-                  <p className="text-white font-mono text-xs bg-gray-800 px-2 py-1 rounded w-fit">{report.metadata.head_branch}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-4">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-4 gap-4">
               <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
                 <p className="text-3xl font-bold text-white">{report.files_changed}</p>
                 <p className="text-gray-400 text-sm mt-1">Files Changed</p>
               </div>
-              <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
-                <p className="text-3xl font-bold text-green-400">+{report.total_additions}</p>
-                <p className="text-gray-400 text-sm mt-1">Additions</p>
+              <div className="bg-gray-900 border border-red-900 rounded-xl p-4 text-center">
+                <p className="text-3xl font-bold text-red-400">{report.summary.total_bugs}</p>
+                <p className="text-gray-400 text-sm mt-1">Bugs Found</p>
               </div>
-              <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
-                <p className="text-3xl font-bold text-red-400">-{report.total_deletions}</p>
-                <p className="text-gray-400 text-sm mt-1">Deletions</p>
+              <div className="bg-gray-900 border border-orange-900 rounded-xl p-4 text-center">
+                <p className="text-3xl font-bold text-orange-400">{report.summary.total_security_issues}</p>
+                <p className="text-gray-400 text-sm mt-1">Security Issues</p>
+              </div>
+              <div className="bg-gray-900 border border-blue-900 rounded-xl p-4 text-center">
+                <p className="text-3xl font-bold text-blue-400">{report.summary.quality_score}/10</p>
+                <p className="text-gray-400 text-sm mt-1">Quality Score</p>
               </div>
             </div>
 
-            {/* Files */}
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-lg font-semibold mb-4 text-blue-400">Changed Files</h2>
-              <div className="space-y-3">
-                {report.files.map((file, i) => (
-                  <div key={i} className="flex items-center justify-between py-3 border-b border-gray-800 last:border-0">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded capitalize shrink-0 ${statusColor(file.status)}`}>
-                        {file.status}
-                      </span>
-                      <span className="font-mono text-sm text-gray-300 truncate">{file.filename}</span>
+            {/* Bugs */}
+            {report.bugs.length > 0 && (
+              <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+                <h2 className="text-lg font-semibold mb-4 text-red-400">🐛 Bugs Detected</h2>
+                <div className="space-y-3">
+                  {report.bugs.map((bug, i) => (
+                    <div key={i} className="border border-gray-800 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`text-xs px-2 py-0.5 rounded font-semibold ${bug.severity === "high" ? "bg-red-500/20 text-red-400" : bug.severity === "medium" ? "bg-yellow-500/20 text-yellow-400" : "bg-gray-500/20 text-gray-400"}`}>
+                          {bug.severity}
+                        </span>
+                        <span className="text-gray-400 text-xs font-mono">{bug.line}</span>
+                      </div>
+                      <p className="text-white text-sm mb-1">{bug.description}</p>
+                      <p className="text-gray-400 text-xs">💡 {bug.suggestion}</p>
                     </div>
-                    <div className="flex items-center gap-3 text-sm shrink-0 ml-4">
-                      <span className="text-green-400">+{file.additions}</span>
-                      <span className="text-red-400">-{file.deletions}</span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Security */}
+            {report.security.length > 0 && (
+              <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+                <h2 className="text-lg font-semibold mb-4 text-orange-400">🔐 Security Issues</h2>
+                <div className="space-y-3">
+                  {report.security.map((issue, i) => (
+                    <div key={i} className="border border-gray-800 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`text-xs px-2 py-0.5 rounded font-semibold ${issue.severity === "critical" ? "bg-red-600/20 text-red-400" : issue.severity === "high" ? "bg-orange-500/20 text-orange-400" : "bg-yellow-500/20 text-yellow-400"}`}>
+                          {issue.severity}
+                        </span>
+                        <span className="text-blue-400 text-xs">{issue.vulnerability}</span>
+                      </div>
+                      <p className="text-white text-sm mb-1">{issue.description}</p>
+                      <p className="text-gray-400 text-xs">🔧 {issue.fix}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Quality */}
+            {report.quality.summary && (
+              <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+                <h2 className="text-lg font-semibold mb-4 text-blue-400">📊 Code Quality</h2>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="text-5xl font-bold text-blue-400">{report.quality.score}</div>
+                  <div>
+                    <p className="text-white text-sm">{report.quality.summary}</p>
+                    <p className="text-gray-500 text-xs mt-1">out of 10</p>
+                  </div>
+                </div>
+                {report.quality.positives?.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-green-400 text-xs font-semibold mb-2">✅ What's good:</p>
+                    {report.quality.positives.map((p, i) => (
+                      <p key={i} className="text-gray-300 text-sm">• {p}</p>
+                    ))}
+                  </div>
+                )}
+                {report.quality.issues?.length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-yellow-400 text-xs font-semibold mb-2">⚠️ Issues:</p>
+                    {report.quality.issues.map((issue, i) => (
+                      <div key={i} className="mb-2">
+                        <p className="text-gray-300 text-sm">• {issue.description}</p>
+                        <p className="text-gray-500 text-xs ml-3">→ {issue.recommendation}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Suggestions */}
+            {report.suggestions.length > 0 && (
+              <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+                <h2 className="text-lg font-semibold mb-4 text-purple-400">💡 Improvement Suggestions</h2>
+                <div className="space-y-3">
+                  {report.suggestions.map((s, i) => (
+                    <div key={i} className="border border-gray-800 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 font-semibold">{s.category}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded font-semibold ${s.priority === "high" ? "bg-red-500/20 text-red-400" : s.priority === "medium" ? "bg-yellow-500/20 text-yellow-400" : "bg-gray-500/20 text-gray-400"}`}>{s.priority}</span>
+                      </div>
+                      <p className="text-white text-sm font-medium mb-1">{s.title}</p>
+                      <p className="text-gray-400 text-xs">{s.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* View on GitHub */}
-            <div className="text-center">
+            <div className="text-center pb-8">
               <a
-                href={report.metadata.url}
+                href={report.pr_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-400 hover:text-blue-300 text-sm underline underline-offset-2"

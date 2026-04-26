@@ -10,3 +10,6 @@ bcrypt
 python-jose[cryptography]
 httpx==0.27.0
 slowapi
+langchain-groq==1.1.2
+langchain-core==1.3.2
+langgraph==1.1.9

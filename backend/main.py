@@ -1,7 +1,9 @@
 import os
 import asyncio
+from agent import review_agent
 import httpx
 from fastapi import FastAPI, HTTPException, Depends
+from agent import ReviewState
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from dotenv import load_dotenv
@@ -88,28 +90,41 @@ async def review_pr(
         )
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 404:
-            raise HTTPException(status_code=404, detail="PR not found. Check URL and GitHub token permissions.")
+            raise HTTPException(status_code=404, detail="PR not found.")
         raise HTTPException(status_code=502, detail=f"GitHub API error: {e.response.status_code}")
 
     structured_files = parse_diff_into_structured(files_raw)
 
-    report = {
-        "pr_url": body.pr_url,
-        "owner": owner,
-        "repo": repo,
-        "pr_number": pr_number,
+    pr_data = {
         "metadata": metadata,
+        "files": structured_files,
         "files_changed": len(structured_files),
         "total_additions": sum(f["additions"] for f in structured_files),
         "total_deletions": sum(f["deletions"] for f in structured_files),
-        "files": structured_files,
     }
+
+    initial_state = ReviewState(
+        pr_data=pr_data,
+        bugs=[],
+        security=[],
+        quality={},
+        suggestions=[],
+        final_report={},
+    )
+
+    result = await asyncio.get_event_loop().run_in_executor(
+        None, review_agent.invoke, initial_state
+    )
+
+    final_report = result["final_report"]
 
     supabase.table("reviews").insert({
         "user_id": current_user.user_id,
         "pr_url": body.pr_url,
         "repo_name": f"{owner}/{repo}",
-        "report": report,
+        "report": final_report,
     }).execute()
 
-    return report
+    return final_report
+
+
