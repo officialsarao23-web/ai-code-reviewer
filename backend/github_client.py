@@ -23,7 +23,7 @@ def parse_pr_url(pr_url: str) -> tuple[str, str, int]:
 
 async def fetch_pr_metadata(owner: str, repo: str, pr_number: int) -> dict:
     url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}"
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(follow_redirects=True) as client:
         response = await client.get(url, headers=HEADERS)
         response.raise_for_status()
         data = response.json()
@@ -41,7 +41,7 @@ async def fetch_pr_metadata(owner: str, repo: str, pr_number: int) -> dict:
 
 async def fetch_pr_files(owner: str, repo: str, pr_number: int) -> list[dict]:
     all_files = []
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(follow_redirects=True) as client:
         for page in range(1, 4):
             url = (
                 f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}/files"
