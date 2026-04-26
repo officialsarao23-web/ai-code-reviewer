@@ -1,10 +1,13 @@
 import os
+import asyncio
+import httpx
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from dotenv import load_dotenv
 from supabase import create_client
 from auth import hash_password, verify_password, create_token, get_current_user, TokenData
+from github_client import parse_pr_url, fetch_pr_metadata, fetch_pr_files, parse_diff_into_structured
 
 load_dotenv()
 
@@ -32,6 +35,9 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+class PRReviewRequest(BaseModel):
+    pr_url: str
 
 @app.get("/")
 def root():
@@ -64,3 +70,46 @@ def login(body: LoginRequest):
 def me(current_user: TokenData = Depends(get_current_user)):
     result = supabase.table("users").select("id, email, created_at").eq("id", current_user.user_id).execute()
     return result.data[0]
+
+@app.post("/review/pr")
+async def review_pr(
+    body: PRReviewRequest,
+    current_user: TokenData = Depends(get_current_user)
+):
+    try:
+        owner, repo, pr_number = parse_pr_url(body.pr_url)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    try:
+        metadata, files_raw = await asyncio.gather(
+            fetch_pr_metadata(owner, repo, pr_number),
+            fetch_pr_files(owner, repo, pr_number),
+        )
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 404:
+            raise HTTPException(status_code=404, detail="PR not found. Check URL and GitHub token permissions.")
+        raise HTTPException(status_code=502, detail=f"GitHub API error: {e.response.status_code}")
+
+    structured_files = parse_diff_into_structured(files_raw)
+
+    report = {
+        "pr_url": body.pr_url,
+        "owner": owner,
+        "repo": repo,
+        "pr_number": pr_number,
+        "metadata": metadata,
+        "files_changed": len(structured_files),
+        "total_additions": sum(f["additions"] for f in structured_files),
+        "total_deletions": sum(f["deletions"] for f in structured_files),
+        "files": structured_files,
+    }
+
+    supabase.table("reviews").insert({
+        "user_id": current_user.user_id,
+        "pr_url": body.pr_url,
+        "repo_name": f"{owner}/{repo}",
+        "report": report,
+    }).execute()
+
+    return report
