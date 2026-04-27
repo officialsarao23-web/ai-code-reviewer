@@ -2,6 +2,7 @@ import os
 import asyncio
 from agent import review_agent
 import httpx
+from memory import save_review_memories
 from fastapi import FastAPI, HTTPException, Depends
 from agent import ReviewState
 from fastapi.middleware.cors import CORSMiddleware
@@ -105,6 +106,7 @@ async def review_pr(
 
     initial_state = ReviewState(
         pr_data=pr_data,
+        user_id=current_user.user_id,
         bugs=[],
         security=[],
         quality={},
@@ -117,6 +119,12 @@ async def review_pr(
     )
 
     final_report = result["final_report"]
+    # Save findings to long-term memory in background
+    try:
+        save_review_memories(current_user.user_id, final_report)
+    except Exception:
+        pass  # memory saving should never break the main response
+    
 
     supabase.table("reviews").insert({
         "user_id": current_user.user_id,

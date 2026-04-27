@@ -1,8 +1,12 @@
+# AI Code Review Agent — LangGraph multi-node pipeline
+# Nodes: bug_detector → security_scanner → quality_checker → improvement_suggester → assemble_report
+
 import os
 from typing import TypedDict, Annotated
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, END
+from memory import search_memory
 import json
 
 llm = ChatGroq(
@@ -14,6 +18,7 @@ llm = ChatGroq(
 
 class ReviewState(TypedDict):
     pr_data: dict
+    user_id: str 
     bugs: list
     security: list
     quality: dict
@@ -37,6 +42,12 @@ def bug_detector(state: ReviewState) -> ReviewState:
     files = state["pr_data"]["files"]
     diff_text = format_files_for_prompt(files)
 
+    # Search past memories for relevant context
+    past_memories = search_memory(state["user_id"], "bugs and errors in code")
+    memory_context = ""
+    if past_memories:
+        memory_context = "\n\nRelevant findings from past reviews:\n" + "\n".join(f"- {m}" for m in past_memories)
+
     messages = [
         SystemMessage(content="""You are an expert code reviewer specializing in bug detection.
 Analyze the given code diff and identify bugs. Look for:
@@ -50,7 +61,7 @@ Analyze the given code diff and identify bugs. Look for:
 Respond ONLY with a valid JSON array. No explanation, no markdown, just the JSON array.
 Format: [{"line": "filename:linenum", "severity": "high|medium|low", "description": "bug description", "suggestion": "how to fix"}]
 If no bugs found, respond with: []"""),
-        HumanMessage(content=f"Analyze this code diff for bugs:\n\n{diff_text}")
+        HumanMessage(content=f"Analyze this code diff for bugs:\n\n{diff_text}{memory_context}")
     ]
 
     response = llm.invoke(messages)
