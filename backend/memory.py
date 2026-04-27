@@ -8,7 +8,7 @@ voyage_client = voyageai.Client(api_key=os.getenv("VOYAGE_API_KEY"))
 
 def embed_text(text: str) -> list[float]:
     """Convert text to a 1024-dimension vector using Voyage AI."""
-    result = voyage_client.embed([text], model="voyage-3-lite")
+    result = voyage_client.embed([text], model="voyage-large-2")
     return result.embeddings[0]
 
 
