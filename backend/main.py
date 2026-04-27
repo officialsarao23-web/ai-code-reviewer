@@ -121,10 +121,10 @@ async def review_pr(
     final_report = result["final_report"]
     # Save findings to long-term memory in background
     try:
-        save_review_memories(current_user.user_id, final_report)
-    except Exception:
-        pass  # memory saving should never break the main response
-    
+       save_review_memories(current_user.user_id, final_report)
+    except Exception as e:
+      print(f"MEMORY ERROR: {e}")
+     
 
     supabase.table("reviews").insert({
         "user_id": current_user.user_id,
