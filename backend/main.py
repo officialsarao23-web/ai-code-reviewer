@@ -135,4 +135,27 @@ async def review_pr(
 
     return final_report
 
+@app.get("/reviews")
+def get_reviews(current_user: TokenData = Depends(get_current_user)):
+    """Get all past reviews for the authenticated user, newest first."""
+    result = supabase.table("reviews") \
+        .select("id, pr_url, repo_name, report, created_at") \
+        .eq("user_id", current_user.user_id) \
+        .order("created_at", desc=True) \
+        .execute()
+    return result.data
+
+
+@app.get("/reviews/{review_id}")
+def get_review(review_id: str, current_user: TokenData = Depends(get_current_user)):
+    """Get a single review by ID. Only returns if it belongs to the authenticated user."""
+    result = supabase.table("reviews") \
+        .select("*") \
+        .eq("id", review_id) \
+        .eq("user_id", current_user.user_id) \
+        .execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return result.data[0]
+
 

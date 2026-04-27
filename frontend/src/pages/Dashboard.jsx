@@ -59,12 +59,20 @@ export default function Dashboard() {
         <div className="flex items-center gap-2">
           <span className="text-xl font-bold text-blue-400">AI Code Reviewer</span>
         </div>
-        <button
-          onClick={handleLogout}
-          className="text-sm text-gray-400 hover:text-white transition-colors"
-        >
-          Logout
-        </button>
+        <div className="flex items-center gap-6">
+          <button
+            onClick={() => navigate("/history")}
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            History
+          </button>
+          <button
+            onClick={handleLogout}
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            Logout
+          </button>
+        </div>
       </nav>
 
       <div className="max-w-4xl mx-auto px-6 py-10">
