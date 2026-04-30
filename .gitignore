@@ -31,3 +31,11 @@ __pycache__/
 
 # Railway specific
 .railway/
+
+# IDE
+.vscode/
+.idea/
+
+# Python virtual environments
+.venv/
+venv/
